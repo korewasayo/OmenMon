@@ -5,9 +5,11 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 using OmenMon.External;
 using OmenMon.Hardware.Bios;
+using OmenMon.Hardware.Ec;
 using OmenMon.Hardware.Platform;
 using OmenMon.Library;
 using System.Diagnostics;
@@ -236,6 +238,8 @@ namespace OmenMon.AppGui {
         // Handles the fan settings button being clicked
         private void EventActionFanSet(object sender, EventArgs e) {
 
+            LogFanControlState("Before");
+
             // Query fan state
             bool isFanMax = Context.Op.Platform.Fans.GetMax();
             bool isFanOff = Context.Op.Platform.Fans.GetOff();
@@ -370,6 +374,8 @@ namespace OmenMon.AppGui {
 
             }
 
+            LogFanControlState("After");
+
             // Restore the default button look
             this.BtnFanSet.Checked = false;
 
@@ -384,6 +390,42 @@ namespace OmenMon.AppGui {
             // Cancel the help cursor
             ((System.ComponentModel.CancelEventArgs) e).Cancel = true;
  
+        }
+#endregion
+
+#region Diagnostics
+        private void LogFanControlState(string stage) {
+            try {
+                byte[] levels = Context.Op.Platform.Fans.GetLevels();
+                string path = Path.Combine(Config.PathTemp, Config.AppName + "-fan-control.log");
+                string line = String.Join(" ",
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    stage,
+                    "Max=" + Context.Op.Platform.Fans.GetMax(),
+                    "Mode=" + Context.Op.Platform.Fans.GetMode(),
+                    "Countdown=" + SafeEc((byte) EmbeddedControllerData.Register.XFCD),
+                    "OMCC=" + SafeEc((byte) EmbeddedControllerData.Register.OMCC),
+                    "SFAN=" + SafeEc((byte) EmbeddedControllerData.Register.SFAN),
+                    "HPCM=" + SafeEc((byte) EmbeddedControllerData.Register.HPCM),
+                    "SRP1=" + SafeEc((byte) EmbeddedControllerData.Register.SRP1),
+                    "SRP2=" + SafeEc((byte) EmbeddedControllerData.Register.SRP2),
+                    "XSS1=" + SafeEc((byte) EmbeddedControllerData.Register.XSS1),
+                    "XSS2=" + SafeEc((byte) EmbeddedControllerData.Register.XSS2),
+                    "XGS1=" + SafeEc((byte) EmbeddedControllerData.Register.XGS1),
+                    "XGS2=" + SafeEc((byte) EmbeddedControllerData.Register.XGS2),
+                    "EC0xEC=" + SafeEc(0xEC),
+                    "Level=" + levels[0] + "," + levels[1]);
+
+                File.AppendAllText(path, line + Environment.NewLine);
+            } catch { }
+
+            string SafeEc(byte register) {
+                try {
+                    return "0x" + Conv.GetString(Hw.EcGetByte(register), 2, 16);
+                } catch {
+                    return "?";
+                }
+            }
         }
 #endregion
 
@@ -722,7 +764,8 @@ namespace OmenMon.AppGui {
 
             // In constant-speed mode, keep resetting the countdown, while also reapplying the current mode
             if(this.RdoFanConst.Checked == true && countdown < Config.UpdateMonitorInterval + Config.FanCountdownExtendThreshold) {
-                Context.Op.Platform.Fans.SetMode(Context.Op.Platform.Fans.GetMode());
+                if(!Config.FanLevelUseEc)
+                    Context.Op.Platform.Fans.SetMode(Context.Op.Platform.Fans.GetMode());
                 Context.Op.Platform.Fans.SetCountdown(Config.FanCountdownExtendInterval);
             }
 

@@ -55,6 +55,7 @@ namespace OmenMon.Hardware.Platform {
         private const byte SwitchOffMask = 0x01;
         private const byte SwitchManualMask = 0x02;
         private const byte SwitchMaxMask = 0x04;
+        private const byte LegacyMaxFanRegister = 0xEC;
 
         // Fan array
         public IFan[] Fan { get; private set; }
@@ -129,6 +130,11 @@ namespace OmenMon.Hardware.Platform {
         // Sets the levels of all fans at the same time
         public void SetLevels(byte[] levels) {
 
+            if(Config.FanLevelUseEc && IsAutoLevel(levels)) {
+                ReleaseEcOverrides();
+                return;
+            }
+
             // Set manual fan mode, if needed
             if(Config.FanLevelNeedManual)
                 this.SetManual(true);
@@ -137,12 +143,13 @@ namespace OmenMon.Hardware.Platform {
             // use either the BIOS or the EC to set levels
             if(Config.FanLevelUseEc) {
 
+                // Make sure EC overrides from Max/Off mode do not keep winning.
+                SetSwitchFlag(SwitchMaxMask, false);
+                SetSwitchFlag(SwitchOffMask, false);
+
                 // Try to set the speed for each fan individually
-                for(int i = 0; i < levels.Length; i++) {
-                    int rate = LevelToRate(levels[i]);
+                for(int i = 0; i < levels.Length; i++)
                     this.Fan[i].SetLevel(levels[i]);
-                    this.Fan[i].SetRate(rate);
-                }
 
             } else {
                 try {
@@ -170,8 +177,7 @@ namespace OmenMon.Hardware.Platform {
             bool manual = (this.Manual.GetValue() & (byte) PlatformData.FanManual.On) != 0;
 
             try {
-                this.Switch.Update();
-                manual |= (this.Switch.GetValue() & SwitchManualMask) != 0;
+                manual |= GetSwitchFlag(SwitchManualMask);
             } catch { }
 
             return manual;
@@ -186,11 +192,7 @@ namespace OmenMon.Hardware.Platform {
                 manual & ~(byte) PlatformData.FanManual.On);
 
             try {
-                this.Switch.Update();
-                byte fanSwitch = (byte) this.Switch.GetValue();
-                this.Switch.SetValue(flag ?
-                    fanSwitch | SwitchManualMask :
-                    fanSwitch & ~SwitchManualMask);
+                SetSwitchFlag(SwitchManualMask, flag);
             } catch { }
         }
 
@@ -202,6 +204,14 @@ namespace OmenMon.Hardware.Platform {
         // Sets the maximum fan speed status
         public void SetMax(bool flag) {
             Hw.BiosSet(Hw.Bios.SetMaxFan, flag);
+
+            if(Config.FanLevelUseEc) {
+                SetSwitchFlag(SwitchMaxMask, flag);
+
+                try {
+                    Hw.EcSetByte(LegacyMaxFanRegister, flag ? (byte) 0x01 : (byte) 0x00);
+                } catch { }
+            }
         }
 
         // Retrieves the current fan mode
@@ -228,13 +238,8 @@ namespace OmenMon.Hardware.Platform {
                 this.SetManual(false);
                 ClearSwitchOverrides();
 
-                // Victus: mark non-Eco via HPCM and restore Auto PWM via XSS
+                // Victus: mark non-Eco via HPCM.
                 try { Hw.EcSetByte((byte) EmbeddedControllerData.Register.HPCM, 0xFF); } catch { }
-                // For HP Victus ECs, setting XSS registers to 0xFF restores Auto PWM control
-                try {
-                    Hw.EcSetByte((byte) EmbeddedControllerData.Register.XSS1, 0xFF);
-                    Hw.EcSetByte((byte) EmbeddedControllerData.Register.XSS2, 0xFF);
-                } catch { }
 
                 // Make a BIOS call to explicitly set the mode
                 this.SetMode(mode);
@@ -252,18 +257,18 @@ namespace OmenMon.Hardware.Platform {
 
         // Retrieves the fan off switch status
         public bool GetOff() {
-            this.Switch.Update();
-            return (this.Switch.GetValue() & SwitchOffMask) != 0;
+            return GetSwitchFlag(SwitchOffMask);
         }
 
         // Switches the fan off or back on
         public void SetOff(bool flag) {
             if (Config.FanLevelUseEc) {
-                this.Switch.Update();
-                byte fanSwitch = (byte) this.Switch.GetValue();
-                this.Switch.SetValue(flag ?
-                    fanSwitch | SwitchOffMask :
-                    fanSwitch & ~SwitchOffMask);
+                if(flag) {
+                    SetSwitchFlag(SwitchMaxMask, false);
+                    SetSwitchFlag(SwitchManualMask, false);
+                }
+
+                SetSwitchFlag(SwitchOffMask, flag);
             } else
                 try {
                     // Make a WMI BIOS call to set the level of both fans
@@ -273,21 +278,37 @@ namespace OmenMon.Hardware.Platform {
         }
 
         private void ClearSwitchOverrides() {
+            this.Switch.SetValue((int) PlatformData.FanSwitch.On);
+
             try {
-                this.Switch.Update();
-                byte fanSwitch = (byte) this.Switch.GetValue();
-                this.Switch.SetValue(fanSwitch & ~(SwitchOffMask | SwitchManualMask | SwitchMaxMask));
+                Hw.EcSetByte(LegacyMaxFanRegister, 0x00);
             } catch { }
         }
 
-        private int LevelToRate(byte level) {
-            if(level == 0)
-                return 0;
+        private bool GetSwitchFlag(byte mask) {
+            this.Switch.Update();
+            return (this.Switch.GetValue() & mask) != 0;
+        }
 
-            return Conv.GetConstrained(
-                level * Config.MaxBelievablePercent / Config.FanLevelMax,
-                1,
-                Config.MaxBelievablePercent);
+        private void SetSwitchFlag(byte mask, bool flag) {
+            this.Switch.Update();
+            byte fanSwitch = (byte) this.Switch.GetValue();
+            this.Switch.SetValue(flag ? fanSwitch | mask : fanSwitch & ~mask);
+        }
+
+        private bool IsAutoLevel(byte[] levels) {
+            foreach(byte level in levels)
+                if(level != Byte.MaxValue)
+                    return false;
+
+            return true;
+        }
+
+        private void ReleaseEcOverrides() {
+            this.SetMax(false);
+            this.SetManual(false);
+            this.SetOff(false);
+            this.SetCountdown(0);
         }
 #endregion
 

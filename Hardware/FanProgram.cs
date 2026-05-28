@@ -250,13 +250,19 @@ namespace OmenMon.Hardware.Platform {
                 + Config.Locale.Get(Config.L_PROG + "Fans") + " "
                 + Conv.GetString(fans[0], 2, 10) + ", " + Conv.GetString(fans[1], 2, 10));
 
+            // For direct EC fan control, apply the BIOS mode first so it
+            // cannot immediately overwrite the manual fan levels.
+            if(Config.FanLevelUseEc)
+                UpdateFanMode(!Config.FanProgramModeCheckFirst);
+
             // Set fan levels
             SetFanLevel(fans);
 
             // Perform other updates, only if necessary
             // or, in case of the fan mode, configured to do so
             // without checking, so as to reduce the EC burden
-            UpdateFanMode(!Config.FanProgramModeCheckFirst);
+            if(!Config.FanLevelUseEc)
+                UpdateFanMode(!Config.FanProgramModeCheckFirst);
             UpdateGpuPower();
 
             // Fan-mode setting resets the countdown,
