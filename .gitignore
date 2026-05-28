@@ -4,3 +4,6 @@
 # Build Output
 Bin/
 Obj/
+/.vs
+/TempResources
+nuget.exe
