@@ -184,7 +184,7 @@ namespace OmenMon.Hardware.Ec {
                 //     return true;
 
                 // Also in the updated version:
-                // Thread.Sleep(1); // using System.Threading;
+                System.Threading.Thread.Sleep(1);
             }
             return false;
         }
