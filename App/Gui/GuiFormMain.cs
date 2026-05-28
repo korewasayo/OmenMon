@@ -319,15 +319,6 @@ namespace OmenMon.AppGui {
                     if(!isFanOff) // If not already off
                         Context.Op.Platform.Fans.SetOff(true);
 
-                // Conversely, if the user wants maximum speed setting
-                // for both fans, we just set it explicitly instead
-                } else if(this.TrkFan0Lvl.Value == this.TrkFan0Lvl.Maximum
-                    && this.TrkFan1Lvl.Value == this.TrkFan1Lvl.Maximum) {
-
-                    // Set the fans to maximum speed
-                    if(!isFanMax) // If not already at maximum speed
-                        Context.Op.Platform.Fans.SetMax(true);
-
                 // Otherwise, we just set the speed levels normally
                 } else {
 
@@ -345,9 +336,13 @@ namespace OmenMon.AppGui {
                     // Note: this won't work for setting both fans to zero
                     // but that case will have already been handled at this point
 
-                    // Reset the fan mode so that the settings are applied
-                    Context.Op.Platform.Fans.SetMode(
-                        Context.Op.Platform.Fans.GetMode());
+                    if(Config.FanLevelUseEc)
+                        Context.Op.Platform.Fans.SetCountdown(Config.FanCountdownExtendInterval);
+                    else {
+                        // Reset the fan mode so that BIOS fan-level settings are applied
+                        Context.Op.Platform.Fans.SetMode(
+                            Context.Op.Platform.Fans.GetMode());
+                    }
 
                 }
 

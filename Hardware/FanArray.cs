@@ -52,6 +52,10 @@ namespace OmenMon.Hardware.Platform {
     // Implements a mechanism for interacting with the fan system
     public class FanArray : IFanArray {
 
+        private const byte SwitchOffMask = 0x01;
+        private const byte SwitchManualMask = 0x02;
+        private const byte SwitchMaxMask = 0x04;
+
         // Fan array
         public IFan[] Fan { get; private set; }
 
@@ -134,8 +138,11 @@ namespace OmenMon.Hardware.Platform {
             if(Config.FanLevelUseEc) {
 
                 // Try to set the speed for each fan individually
-                for(int i = 0; i < levels.Length; i++)
+                for(int i = 0; i < levels.Length; i++) {
+                    int rate = LevelToRate(levels[i]);
                     this.Fan[i].SetLevel(levels[i]);
+                    this.Fan[i].SetRate(rate);
+                }
 
             } else {
                 try {
@@ -159,15 +166,32 @@ namespace OmenMon.Hardware.Platform {
 
         // Retrieves the manual fan speed toggle status
         public bool GetManual() {
-            // Rely on OMCC (0x28) manual flag, which matches Victus behavior
-            return this.Manual.GetValue() == (byte) PlatformData.FanManual.On;
+            this.Manual.Update();
+            bool manual = (this.Manual.GetValue() & (byte) PlatformData.FanManual.On) != 0;
+
+            try {
+                this.Switch.Update();
+                manual |= (this.Switch.GetValue() & SwitchManualMask) != 0;
+            } catch { }
+
+            return manual;
         }
 
         // Sets the manual fan speed toggle status
         public void SetManual(bool flag) {
-            // Update OMCC (0x28) only
+            this.Manual.Update();
+            byte manual = (byte) this.Manual.GetValue();
             this.Manual.SetValue(flag ?
-                (byte) PlatformData.FanManual.On : (byte) PlatformData.FanManual.Off);
+                manual | (byte) PlatformData.FanManual.On :
+                manual & ~(byte) PlatformData.FanManual.On);
+
+            try {
+                this.Switch.Update();
+                byte fanSwitch = (byte) this.Switch.GetValue();
+                this.Switch.SetValue(flag ?
+                    fanSwitch | SwitchManualMask :
+                    fanSwitch & ~SwitchManualMask);
+            } catch { }
         }
 
         // Retrieves the maximum fan speed status
@@ -202,6 +226,7 @@ namespace OmenMon.Hardware.Platform {
                 // Disable overrides first
                 this.SetMax(false);
                 this.SetManual(false);
+                ClearSwitchOverrides();
 
                 // Victus: mark non-Eco via HPCM and restore Auto PWM via XSS
                 try { Hw.EcSetByte((byte) EmbeddedControllerData.Register.HPCM, 0xFF); } catch { }
@@ -228,20 +253,41 @@ namespace OmenMon.Hardware.Platform {
         // Retrieves the fan off switch status
         public bool GetOff() {
             this.Switch.Update();
-            return ((PlatformData.FanSwitch) this.Switch.GetValue()) == PlatformData.FanSwitch.Off;
+            return (this.Switch.GetValue() & SwitchOffMask) != 0;
         }
 
         // Switches the fan off or back on
         public void SetOff(bool flag) {
-            if (Config.FanLevelUseEc)
+            if (Config.FanLevelUseEc) {
+                this.Switch.Update();
+                byte fanSwitch = (byte) this.Switch.GetValue();
                 this.Switch.SetValue(flag ?
-                    (int) PlatformData.FanSwitch.Off : (int) PlatformData.FanSwitch.On);
-            else 
+                    fanSwitch | SwitchOffMask :
+                    fanSwitch & ~SwitchOffMask);
+            } else
                 try {
                     // Make a WMI BIOS call to set the level of both fans
                     Hw.BiosSet(Hw.Bios.SetFanLevel, new byte[]{0x00,0x00});
                 } catch {}
                 
+        }
+
+        private void ClearSwitchOverrides() {
+            try {
+                this.Switch.Update();
+                byte fanSwitch = (byte) this.Switch.GetValue();
+                this.Switch.SetValue(fanSwitch & ~(SwitchOffMask | SwitchManualMask | SwitchMaxMask));
+            } catch { }
+        }
+
+        private int LevelToRate(byte level) {
+            if(level == 0)
+                return 0;
+
+            return Conv.GetConstrained(
+                level * Config.MaxBelievablePercent / Config.FanLevelMax,
+                1,
+                Config.MaxBelievablePercent);
         }
 #endregion
 

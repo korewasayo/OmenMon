@@ -29,13 +29,13 @@ namespace OmenMon.Hardware.Platform {
         // Fan manual toggle
         public enum FanManual : byte {
             Off = 0x00,
-            On  = 0x06
+            On  = 0x01
         }
 
         // Fan on/off switch
         public enum FanSwitch : byte {
             On  = 0x00,
-            Off = 0x02
+            Off = 0x01
         }
 
         // Link type
