@@ -332,8 +332,12 @@ namespace OmenMon.AppGui {
                     if(isFanOff) // Re-enable fan if off first
                         Context.Op.Platform.Fans.SetOff(false);
 
+                    BiosData.FanMode fanModeAsk = (BiosData.FanMode) Enum.Parse(
+                        typeof(BiosData.FanMode), 
+                        (string) this.CmbFanMode.SelectedValue);
+
                     if(Config.FanLevelUseEc)
-                        Context.Op.Platform.Fans.SetMode(Context.Op.Platform.Fans.GetMode());
+                        Context.Op.Platform.Fans.SetMode(fanModeAsk);
 
                     // Set each fan to the user-selected level
                     // or to zero, if the minimum value is selected
@@ -347,8 +351,7 @@ namespace OmenMon.AppGui {
                         Context.Op.Platform.Fans.SetCountdown(Config.FanCountdownExtendInterval);
                     else {
                         // Reset the fan mode so that BIOS fan-level settings are applied
-                        Context.Op.Platform.Fans.SetMode(
-                            Context.Op.Platform.Fans.GetMode());
+                        Context.Op.Platform.Fans.SetMode(fanModeAsk);
                     }
 
                 }
