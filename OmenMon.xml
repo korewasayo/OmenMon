@@ -15,7 +15,7 @@
     <Config>
 
         <!-- Automatically apply settings on start -->
-        <AutoConfig>false</AutoConfig>
+        <AutoConfig>true</AutoConfig>
 
         <!-- Automatically start up with Windows -->
         <AutoStartup>true</AutoStartup>
@@ -89,11 +89,11 @@
 
         <!-- Before setting fan levels, set manual
              fan mode first using the Embedded Controller -->
-        <FanLevelNeedManual>true</FanLevelNeedManual>
+        <FanLevelNeedManual>false</FanLevelNeedManual>
 
         <!-- Use the Embedded Controller instead
              of a BIOS call for fan-level setting -->
-        <FanLevelUseEc>true</FanLevelUseEc>
+        <FanLevelUseEc>false</FanLevelUseEc>
 
         <!-- Default fan program, which might be loaded on startup
              (depending on the Autoconfig setting) -->
@@ -136,8 +136,8 @@
                 <Level Temperature="72"><Cpu>41</Cpu><Gpu>46</Gpu></Level>
                 <Level Temperature="75"><Cpu>44</Cpu><Gpu>49</Gpu></Level>
                 <Level Temperature="78"><Cpu>47</Cpu><Gpu>52</Gpu></Level>
-                <Level Temperature="81"><Cpu>50</Cpu><Gpu>55</Gpu></Level>
-                <Level Temperature="84"><Cpu>55</Cpu><Gpu>57</Gpu></Level>
+                <Level Temperature="81"><Cpu>53</Cpu><Gpu>56</Gpu></Level>
+                <Level Temperature="83"><Cpu>55</Cpu><Gpu>57</Gpu></Level>
             </Program>
             <Program Name="Silent">
                 <FanMode>Default</FanMode>
@@ -149,8 +149,8 @@
                 <Level Temperature="65"><Cpu>40</Cpu><Gpu>40</Gpu></Level>
                 <Level Temperature="70"><Cpu>45</Cpu><Gpu>45</Gpu></Level>
                 <Level Temperature="75"><Cpu>50</Cpu><Gpu>50</Gpu></Level>
-                <Level Temperature="80"><Cpu>53</Cpu><Gpu>55</Gpu></Level>
-                <Level Temperature="85"><Cpu>55</Cpu><Gpu>57</Gpu></Level>
+                <Level Temperature="79"><Cpu>53</Cpu><Gpu>55</Gpu></Level>
+                <Level Temperature="83"><Cpu>55</Cpu><Gpu>57</Gpu></Level>
             </Program>
         </FanPrograms>
 
