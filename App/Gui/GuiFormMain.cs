@@ -813,9 +813,6 @@ namespace OmenMon.AppGui {
             else
                 this.RdoFanAuto.Checked = true;
 
-            // Restore the Set button default look
-            this.BtnFanSet.Checked = false;
-
         }
 
         // Updates the keyboard group
