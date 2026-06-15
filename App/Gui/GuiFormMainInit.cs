@@ -254,7 +254,7 @@ namespace OmenMon.AppGui {
             this.TrkFan0Lvl.Location = new Point(6, 30);
             this.TrkFan0Lvl.Maximum = Config.FanLevelMax;
             this.TrkFan0Lvl.Minimum = Config.FanLevelMin;
-            this.TrkFan0Lvl.Name = Gui.T_TRK + Gui.G_FAN + "1" + Gui.S_LVL;
+            this.TrkFan0Lvl.Name = Gui.T_TRK + Gui.G_FAN + "0" + Gui.S_LVL;
             this.TrkFan0Lvl.Orientation = Orientation.Vertical;
             this.TrkFan0Lvl.Size = new Size(34, 150);
             this.TrkFan0Lvl.TabIndex = 10;
