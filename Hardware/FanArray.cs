@@ -238,6 +238,10 @@ namespace OmenMon.Hardware.Platform {
                 this.SetManual(false);
                 ClearSwitchOverrides();
 
+                if(!Config.FanLevelUseEc) {
+                    try { Hw.BiosSet(Hw.Bios.SetFanLevel, new byte[]{ 0xFF, 0xFF }); } catch { }
+                }
+
                 // Victus: mark non-Eco via HPCM.
                 try { Hw.EcSetByte((byte) EmbeddedControllerData.Register.HPCM, 0xFF); } catch { }
 
@@ -269,12 +273,14 @@ namespace OmenMon.Hardware.Platform {
                 }
 
                 SetSwitchFlag(SwitchOffMask, flag);
-            } else
+            } else {
                 try {
-                    // Make a WMI BIOS call to set the level of both fans
-                    Hw.BiosSet(Hw.Bios.SetFanLevel, new byte[]{0x00,0x00});
+                    // Make a WMI BIOS call to set the level of both fans (0xFF restores auto)
+                    Hw.BiosSet(Hw.Bios.SetFanLevel, flag ? new byte[]{0x00, 0x00} : new byte[]{0xFF, 0xFF});
+                    // On WMI systems, level changes require setting the mode to take effect
+                    this.SetMode(this.GetMode());
                 } catch {}
-                
+            }
         }
 
         private void ClearSwitchOverrides() {
