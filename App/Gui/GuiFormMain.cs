@@ -279,7 +279,7 @@ namespace OmenMon.AppGui {
             } else if(this.RdoFanOff.Checked) {
 
                 // Terminate any running fan program
-                Context.Op.Program.Terminate();
+                Context.Op.Program.Terminate(true);
 
                 if(!isFanOff) { // Skip if already off
 
@@ -295,7 +295,7 @@ namespace OmenMon.AppGui {
             } else if(this.RdoFanMax.Checked) {
 
                 // Terminate any running fan program
-                Context.Op.Program.Terminate();
+                Context.Op.Program.Terminate(true);
 
                 if(!isFanMax) { // Skip if already maximum speed
 
@@ -311,7 +311,7 @@ namespace OmenMon.AppGui {
             } else if(this.RdoFanConst.Checked) {
 
                 // Terminate any running fan program
-                Context.Op.Program.Terminate();
+                Context.Op.Program.Terminate(true);
 
                 // The BIOS mandates that at least one fan
                 // be left running at any given time, so if the user
@@ -354,7 +354,7 @@ namespace OmenMon.AppGui {
             } else if(this.RdoFanAuto.Checked) {
 
                 // Terminate any running fan program
-                Context.Op.Program.Terminate();
+                Context.Op.Program.Terminate(true);
 
                 // Query the current and requested mode
                 BiosData.FanMode fanModeNow = Context.Op.Platform.Fans.GetMode();

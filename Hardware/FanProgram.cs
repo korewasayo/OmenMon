@@ -191,7 +191,7 @@ namespace OmenMon.Hardware.Platform {
         }
 
         // Terminates the running fan program, if any is running
-        public bool Terminate() {
+        public bool Terminate(bool quiet = false) {
 
             // Fail if no program active
             if(!this.IsEnabled)
@@ -219,7 +219,8 @@ namespace OmenMon.Hardware.Platform {
             Reset();
 
             // Update the status
-            Status(Severity.Notice, Config.Locale.Get(Config.L_PROG + "End"));
+            if(!quiet)
+                Status(Severity.Notice, Config.Locale.Get(Config.L_PROG + "End"));
 
             // Report success
             return true;
