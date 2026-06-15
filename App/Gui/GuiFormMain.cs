@@ -332,6 +332,9 @@ namespace OmenMon.AppGui {
                     if(isFanOff) // Re-enable fan if off first
                         Context.Op.Platform.Fans.SetOff(false);
 
+                    if(Config.FanLevelUseEc)
+                        Context.Op.Platform.Fans.SetMode(Context.Op.Platform.Fans.GetMode());
+
                     // Set each fan to the user-selected level
                     // or to zero, if the minimum value is selected
                     Context.Op.Platform.Fans.SetLevels(new byte[] {
@@ -787,6 +790,10 @@ namespace OmenMon.AppGui {
 
         // Updates the fan group controls section
         public void UpdateFanCtl() {
+
+            // Hold if the Set button is already highlighted to preserve pending user changes
+            if(this.BtnFanSet.Checked)
+                return;
 
             // Query and retrieve fan control state
             bool isFanMax = Context.Op.Platform.Fans.GetMax();
