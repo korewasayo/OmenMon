@@ -131,7 +131,8 @@ namespace OmenMon.Library {
 
                     // Load the file
                     XmlDocument xml = new XmlDocument();
-                    xml.Load(FilePath);
+                    using (FileStream fs = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        xml.Load(fs);
 
                     // Replace the hard-coded XML template with a localized one
                     // Only possible once the localizable message class is instantiated
@@ -380,6 +381,10 @@ namespace OmenMon.Library {
 
                 }
 
+            } else if (FilePath != "") {
+                
+                // If the file doesn't exist, generate the default configuration file
+                Save();
             }
 
         }
@@ -400,7 +405,8 @@ namespace OmenMon.Library {
                     try {
 
                         // Try to load the existing configuration file
-                        xml.Load(FilePath);
+                        using (FileStream fs = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                            xml.Load(fs);
 
                     } catch {
 
@@ -562,14 +568,27 @@ namespace OmenMon.Library {
                     SetUInt(xml, XmlPrefix + "UpdateMonitorInterval", (uint) UpdateMonitorInterval);
                     SetUInt(xml, XmlPrefix + "UpdateProgramInterval", (uint) UpdateProgramInterval);
 
-                    // Save the file
+                    // Save the file atomically using a temporary file
                     XmlWriterSettings xmlWriterSettings = new XmlWriterSettings();
                     xmlWriterSettings.Encoding = new UTF8Encoding(XmlSaveBom);
                     xmlWriterSettings.Indent = true;
                     xmlWriterSettings.IndentChars = XmlSaveIndent;
                     xmlWriterSettings.NewLineHandling = NewLineHandling.Replace;
-                    using(XmlWriter xmlWriter = XmlWriter.Create(FilePath, xmlWriterSettings))
-                        xml.Save(xmlWriter);
+                    string tempFilePath = FilePath + ".tmp";
+                    
+                    // Explicitly use FileStream and using block with braces to guarantee handle release
+                    using (FileStream fs = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
+                        using (XmlWriter xmlWriter = XmlWriter.Create(fs, xmlWriterSettings)) {
+                            xml.Save(xmlWriter);
+                            xmlWriter.Flush();
+                        }
+                    }
+
+                    if (File.Exists(FilePath)) {
+                        File.Replace(tempFilePath, FilePath, null);
+                    } else {
+                        File.Move(tempFilePath, FilePath);
+                    }
 
                 } catch {
 

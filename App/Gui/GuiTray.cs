@@ -189,14 +189,24 @@ namespace OmenMon.AppGui {
         // Handles a timer tick
         private void EventTrayUpdateTimerTick(object sender, EventArgs e)
         {
-            // Perform the updates as scheduled
-            Update();
+            Hw.ThrowEcLockErrors = false;
+            try {
+                // Perform the updates as scheduled
+                Update();
+            } finally {
+                Hw.ThrowEcLockErrors = true;
+            }
         }
 
         private void HardwareHeartbeatTick(object sender, EventArgs e)
         {
-            // send a heartbeat to the bios for new devices
-            BiosCtl.Instance.GetFanCount();
+            Hw.ThrowEcLockErrors = false;
+            try {
+                // send a heartbeat to the bios for new devices
+                BiosCtl.Instance.GetFanCount();
+            } finally {
+                Hw.ThrowEcLockErrors = true;
+            }
         }
 #endregion
 

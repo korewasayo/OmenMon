@@ -181,6 +181,9 @@ namespace OmenMon.Library {
 #region Embedded Controller
         // Embedded Controller interface
         public static IEmbeddedController Ec;
+        
+        // Flag to prevent modal errors when running from background timers
+        public static bool ThrowEcLockErrors = true;
 
         // Prepares the embedded controller for use
         public static void EcInit() {
@@ -216,7 +219,7 @@ namespace OmenMon.Library {
                 }
             }
             else {
-                App.Error("ErrEcLock");
+                if(ThrowEcLockErrors) App.Error("ErrEcLock");
             }
         }
 
@@ -229,7 +232,7 @@ namespace OmenMon.Library {
                     ec.Release();
                 }
             } else {
-                App.Error("ErrEcLock");
+                if(ThrowEcLockErrors) App.Error("ErrEcLock");
                 return default(TResult);
             }
         }
